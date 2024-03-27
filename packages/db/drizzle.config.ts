@@ -8,7 +8,7 @@ export default {
     port: 5432,
     user: "postgres",
     password: "mysecretpassword",
-    database: "db",
+    database: "postgres",
   },
   verbose: true,
   tablesFilter: ["t3turbo_*"],
