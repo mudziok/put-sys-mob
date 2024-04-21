@@ -9,7 +9,7 @@ export default function Index() {
   const login = async () => {
     const response = await promptLogin();
     if (response.type === "success") {
-      router.replace("/user");
+      router.replace("/map");
     }
   };
 

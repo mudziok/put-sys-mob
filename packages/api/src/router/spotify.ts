@@ -55,6 +55,13 @@ export const spotifyRouter = createTRPCRouter({
         },
       );
 
+      if (!res.ok) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Could not recieve data from Spotify API.",
+        });
+      }
+
       const trackSchema = z.object({
         item: z.object({
           album: z.object({
@@ -62,6 +69,7 @@ export const spotifyRouter = createTRPCRouter({
           }),
           name: z.string(),
           artists: z.array(z.object({ name: z.string() })),
+          uri: z.string(),
         }),
       });
 

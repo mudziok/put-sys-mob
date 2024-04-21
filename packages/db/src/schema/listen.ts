@@ -12,4 +12,6 @@ export const listen = mySqlTable("listen", {
     .default(sql`CURRENT_TIMESTAMP`)
     .notNull(),
   updatedAt: timestamp("updatedAt").defaultNow(),
+  uri: varchar("uri", { length: 256 }).notNull(),
+  image: varchar("image", { length: 256 }),
 });
