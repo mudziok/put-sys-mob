@@ -1,4 +1,3 @@
-import type { LocationObject } from "expo-location";
 import { Pressable, Text, View } from "react-native";
 import MapView, { Marker } from "react-native-maps";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -6,11 +5,12 @@ import { Image } from "expo-image";
 import { router } from "expo-router";
 import { FontAwesome } from "@expo/vector-icons";
 
+import type { Coords } from "~/utils/location";
 import { api } from "~/utils/api";
 import { useSpotifyAuth } from "~/utils/auth";
-import { useLocation } from "~/utils/location";
+import { useScrollLocation } from "~/utils/location";
 
-function MusicPlayer({ location }: { location: LocationObject }) {
+function MusicPlayer({ coords }: { coords: Coords }) {
   const { accessToken } = useSpotifyAuth();
   const utils = api.useUtils();
 
@@ -52,8 +52,8 @@ function MusicPlayer({ location }: { location: LocationObject }) {
           className="flex aspect-square h-12 items-center justify-center rounded-full border border-gray-200 active:bg-gray-200"
           onPress={() =>
             mutate({
-              latitude: location.coords.latitude,
-              longitude: location.coords.longitude,
+              latitude: coords.latitude,
+              longitude: coords.longitude,
               title: track.item.name,
               uri: track.item.uri,
               image: track.item.album.images[0]?.url,
@@ -67,13 +67,23 @@ function MusicPlayer({ location }: { location: LocationObject }) {
   );
 }
 
+function UserMarker({ coords }: { coords: Coords }) {
+  return (
+    <Marker coordinate={coords}>
+      <View className="rounded-full bg-blue-500 p-2">
+        <View className="rounded-full bg-blue-300 p-2" />
+      </View>
+    </Marker>
+  );
+}
+
 export default function Index() {
-  const { location } = useLocation();
-  const coords = location?.coords ?? {
-    latitude: 37.78825,
-    longitude: -122.4324,
-  };
-  const { data } = api.listen.all.useQuery(coords);
+  const { coords, locationCoords, setScrollCoords, isScrolled } =
+    useScrollLocation();
+
+  const { data } = api.listen.all.useQuery(locationCoords, {
+    placeholderData: (prev) => prev,
+  });
   const insets = useSafeAreaInsets();
 
   return (
@@ -81,44 +91,52 @@ export default function Index() {
       className="relative flex flex-1 bg-gray-100"
       style={{ paddingBottom: insets.bottom }}
     >
-      <MapView
-        style={{ flex: 1 }}
-        region={{
-          latitude: coords.latitude,
-          longitude: coords.longitude,
-          latitudeDelta: 0.0922,
-          longitudeDelta: 0.0421,
-        }}
-      >
-        {data?.map((marker) => {
-          if (!marker.location?.coordinates) return null;
-          const [longitude, latitude] = marker.location.coordinates;
-          if (!latitude || !longitude) return null;
-          return (
-            <Marker
-              key={marker.id}
-              coordinate={{
-                latitude: latitude,
-                longitude: longitude,
-              }}
-              onPress={() =>
-                router.push({
-                  pathname: `/listen/[id]`,
-                  params: { id: marker.id.toString() },
-                })
-              }
-            >
-              <View className="rounded-md bg-gray-100 p-1 active:opacity-90">
-                <Image
-                  style={{ width: 48, height: 48 }}
-                  source={marker.image}
-                />
-              </View>
-            </Marker>
-          );
-        })}
-      </MapView>
-      {location && <MusicPlayer location={location} />}
+      <View style={{ flex: 1, position: "relative" }}>
+        <MapView
+          style={{ flex: 1 }}
+          region={coords}
+          onRegionChangeComplete={(coords) => setScrollCoords(coords)}
+        >
+          {data?.map((marker) => {
+            if (!marker.location?.coordinates) return null;
+            const [longitude, latitude] = marker.location.coordinates;
+            if (!latitude || !longitude) return null;
+            return (
+              <Marker
+                key={marker.id}
+                coordinate={{
+                  latitude: latitude,
+                  longitude: longitude,
+                }}
+                onPress={() =>
+                  router.push({
+                    pathname: `/listen/[id]`,
+                    params: { id: marker.id.toString() },
+                  })
+                }
+              >
+                <View className="rounded-md bg-gray-100 p-1 active:opacity-90">
+                  <Image
+                    style={{ width: 48, height: 48 }}
+                    source={marker.image}
+                  />
+                </View>
+              </Marker>
+            );
+          })}
+          <UserMarker coords={locationCoords} />
+        </MapView>
+        {isScrolled && (
+          <Pressable
+            className="absolute bottom-2 right-2 flex aspect-square h-12 items-center justify-center rounded-full border border-gray-200 bg-gray-100 active:bg-gray-200"
+            onPress={() => setScrollCoords(null)}
+          >
+            <FontAwesome name="location-arrow" size={20} color="black" />
+          </Pressable>
+        )}
+      </View>
+
+      {locationCoords && <MusicPlayer coords={locationCoords} />}
     </View>
   );
 }
