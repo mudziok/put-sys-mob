@@ -14,9 +14,12 @@ export default function Index() {
   };
 
   return (
-    <View>
-      <Pressable onPress={login}>
-        <Text>Login</Text>
+    <View className="flex flex-1 items-center justify-center">
+      <Pressable
+        onPress={login}
+        className="rounded-full bg-green-400 px-4 py-2 active:bg-green-500"
+      >
+        <Text>Login with Spotify</Text>
       </Pressable>
     </View>
   );
