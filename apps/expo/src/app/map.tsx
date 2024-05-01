@@ -156,6 +156,12 @@ export default function Index() {
                   name: marker.name,
                   listens: marker.listens,
                 }}
+                onPress={() =>
+                  router.push({
+                    pathname: `/radio/[id]`,
+                    params: { id: marker.id.toString() },
+                  })
+                }
               />
             );
           })}
@@ -170,7 +176,6 @@ export default function Index() {
           </Pressable>
         )}
       </View>
-      {/* <Text>{JSON.stringify(radios)}</Text> */}
       {locationCoords && <MusicPlayer coords={locationCoords} />}
     </View>
   );

@@ -44,6 +44,8 @@ export const listenRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       const { longitude, latitude, title, uri, image } = input;
       await ctx.db.transaction(async (tx) => {
+        // TODO: Important! this query needs to find the radio
+        // closest to the listen location instead of a random one
         const radio = await tx.query.radio.findFirst({});
         if (!radio) {
           tx.rollback();

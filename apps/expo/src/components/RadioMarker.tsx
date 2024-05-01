@@ -2,6 +2,7 @@ import type { MapMarkerProps } from "react-native-maps";
 import { Text, View } from "react-native";
 import { Marker } from "react-native-maps";
 import { Image } from "expo-image";
+import { FontAwesome6 } from "@expo/vector-icons";
 
 import type { RouterOutputs } from "~/utils/api";
 
@@ -35,7 +36,8 @@ export default function RadioMarker({
   return (
     <Marker {...mapMarkerProps}>
       <View className="relative flex items-center gap-2 active:opacity-80">
-        <View className="rounded-md bg-white p-1">
+        <View className="flex flex-row justify-center gap-2 rounded-md bg-white p-1">
+          <FontAwesome6 name="radio" size={16} />
           <Text className="font-bold">{radio.name}</Text>
         </View>
         <View className="relative">

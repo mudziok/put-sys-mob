@@ -46,14 +46,23 @@ export const radioRouter = createTRPCRouter({
   byId: publicProcedure
     .input(z.object({ id: z.number() }))
     .query(async ({ ctx, input }) => {
-      const listen = await ctx.db.query.listen.findFirst({
-        where: eq(schema.listen.id, input.id),
-      });
+      const rows = await ctx.db
+        .select()
+        .from(schema.radio)
+        .where(eq(schema.radio.id, input.id))
+        .leftJoin(schema.listen, eq(schema.radio.id, schema.listen.radioId));
 
-      if (!listen) {
-        throw new Error("Listen not found");
+      const radio = rows.at(0)?.radio;
+      if (!radio) {
+        throw new Error("Radio not found");
       }
 
-      return listen;
+      return {
+        ...radio,
+        listens: rows
+          .map((row) => row.listen)
+          // TODO: find a way to filter out nulls with valid type narrowing
+          .filter((listen) => listen !== null) as Listen[],
+      };
     }),
 });
