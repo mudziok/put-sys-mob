@@ -1,5 +1,15 @@
+import { useEffect } from "react";
 import { Pressable, Text, View } from "react-native";
 import MapView, { Marker } from "react-native-maps";
+import Animated, {
+  Easing,
+  FadeInDown,
+  FadeOutDown,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withTiming,
+} from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Image } from "expo-image";
 import { router } from "expo-router";
@@ -52,8 +62,7 @@ function MusicPlayer({ coords }: { coords: Coords }) {
           className="flex aspect-square h-12 items-center justify-center rounded-full border border-gray-200 active:bg-gray-200"
           onPress={() =>
             mutate({
-              latitude: coords.latitude,
-              longitude: coords.longitude,
+              ...coords,
               title: track.item.name,
               uri: track.item.uri,
               image: track.item.album.images[0]?.url,
@@ -67,12 +76,28 @@ function MusicPlayer({ coords }: { coords: Coords }) {
   );
 }
 
+const duration = 2000;
+const easing = Easing.bezier(0.25, -0.5, 0.25, 1);
+
 function UserMarker({ coords }: { coords: Coords }) {
+  const sv = useSharedValue<number>(1);
+
+  useEffect(() => {
+    sv.value = withRepeat(withTiming(0, { duration, easing }), 0);
+  }, [sv]);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    opacity: sv.value,
+    transform: [{ scale: 2.0 - sv.value }],
+  }));
+
   return (
-    <Marker coordinate={coords}>
-      <View className="rounded-full bg-blue-500 p-2">
-        <View className="rounded-full bg-blue-300 p-2" />
-      </View>
+    <Marker coordinate={coords} zIndex={10}>
+      <Animated.View
+        className="absolute rounded-full bg-blue-500 p-[10px]"
+        style={animatedStyle}
+      />
+      <View className="absolute rounded-full bg-blue-500 p-[10px]" />
     </Marker>
   );
 }
@@ -96,6 +121,7 @@ export default function Index() {
           style={{ flex: 1 }}
           region={coords}
           onRegionChangeComplete={(coords) => setScrollCoords(coords)}
+          minZoomLevel={10}
         >
           {data?.map((marker) => {
             if (!marker.location?.coordinates) return null;
@@ -115,12 +141,16 @@ export default function Index() {
                   })
                 }
               >
-                <View className="rounded-md bg-gray-100 p-1 active:opacity-90">
+                <Animated.View
+                  className="rounded-md bg-gray-100 p-1 active:opacity-80"
+                  entering={FadeInDown}
+                  exiting={FadeOutDown}
+                >
                   <Image
                     style={{ width: 48, height: 48 }}
                     source={marker.image}
                   />
-                </View>
+                </Animated.View>
               </Marker>
             );
           })}
