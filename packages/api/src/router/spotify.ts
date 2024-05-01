@@ -75,4 +75,33 @@ export const spotifyRouter = createTRPCRouter({
 
       return trackSchema.parse(await res.json());
     }),
+  // TODO: Check if this works with a Spotify Premium account, please delete this comment if it does
+  play: publicProcedure
+    .input(z.object({ accessToken: z.string().optional(), uri: z.string() }))
+    .mutation(async ({ input: { accessToken, uri } }) => {
+      if (!accessToken) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "An unexpected error occurred, please try again later.",
+        });
+      }
+
+      const params = new URLSearchParams();
+      params.append("context_uri", uri);
+
+      const res = await fetch("https://api.spotify.com/v1/me/player/play", {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: params,
+      });
+
+      if (!res.ok) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Could not recieve data from Spotify API.",
+        });
+      }
+    }),
 });
