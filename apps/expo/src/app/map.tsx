@@ -135,7 +135,6 @@ export default function Index() {
           </Pressable>
         )}
       </View>
-
       {locationCoords && <MusicPlayer coords={locationCoords} />}
     </View>
   );

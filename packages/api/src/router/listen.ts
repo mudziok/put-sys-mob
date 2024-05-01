@@ -4,22 +4,19 @@ import { eq, schema, sql } from "@acme/db";
 
 import { createTRPCRouter, publicProcedure } from "../trpc";
 
+const MAP_DISCOVERY_RADIUS = 0.1;
+
 export const listenRouter = createTRPCRouter({
   all: publicProcedure
     .input(z.object({ longitude: z.number(), latitude: z.number() }))
     .query(({ ctx, input }) => {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { longitude, latitude } = input;
-      return (
-        ctx.db
-          .select()
-          .from(schema.listen)
-          // TODO: filter by nearest location, following code sadly doesn't work
-          // .where(
-          //   sql`ST_DWithin(location, ST_SetSRID(ST_MakePoint(${longitude},${latitude}), 4326), 1000)`,
-          // )
-          .orderBy(sql`random()`)
-      );
+      return ctx.db
+        .select()
+        .from(schema.listen)
+        .where(
+          sql`ST_DWithin(location, ST_SetSRID(ST_MakePoint(${longitude},${latitude}), 4326), ${MAP_DISCOVERY_RADIUS})`,
+        );
     }),
   byId: publicProcedure
     .input(z.object({ id: z.number() }))
