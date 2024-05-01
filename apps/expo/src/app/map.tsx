@@ -1,21 +1,13 @@
-import { useEffect } from "react";
-import { Pressable, Text, View } from "react-native";
+import { Alert, Pressable, Text, View } from "react-native";
 import MapView, { Marker } from "react-native-maps";
-import Animated, {
-  Easing,
-  FadeInDown,
-  FadeOutDown,
-  useAnimatedStyle,
-  useSharedValue,
-  withRepeat,
-  withTiming,
-} from "react-native-reanimated";
+import Animated, { FadeInDown, FadeOutDown } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Image } from "expo-image";
 import { router } from "expo-router";
 import { FontAwesome } from "@expo/vector-icons";
 
 import type { Coords } from "~/utils/location";
+import UserLocationMarker from "~/components/UserLocationMarker";
 import { api } from "~/utils/api";
 import { useSpotifyAuth } from "~/utils/auth";
 import { useScrollLocation } from "~/utils/location";
@@ -39,6 +31,31 @@ function MusicPlayer({ coords }: { coords: Coords }) {
     return null;
   }
 
+  const title = track.item.name;
+  const artist = track.item.artists.map((artist) => artist.name).join(", ");
+
+  const addListenAlert = () =>
+    Alert.alert(
+      "Mark a listen",
+      `Do you want to mark your listen to "${title}" by ${artist}?`,
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Mark a listen",
+          onPress: () =>
+            mutate({
+              ...coords,
+              title,
+              uri: track.item.uri,
+              image: track.item.album.images[0]?.url,
+            }),
+        },
+      ],
+    );
+
   return (
     <View className="flex flex-row gap-2 border-t border-gray-200 bg-gray-100 p-2">
       <Image
@@ -46,10 +63,8 @@ function MusicPlayer({ coords }: { coords: Coords }) {
         source={track.item.album.images[0]?.url}
       />
       <View className="flex flex-1 flex-col items-center justify-center gap-1">
-        <Text className="font-semibold">{track.item.name}</Text>
-        <Text>
-          {track.item.artists.map((artist) => artist.name).join(", ")}
-        </Text>
+        <Text className="font-semibold">{title}</Text>
+        <Text>{artist}</Text>
       </View>
       <View className="flex flex-row items-center gap-2">
         <Pressable
@@ -60,45 +75,12 @@ function MusicPlayer({ coords }: { coords: Coords }) {
         </Pressable>
         <Pressable
           className="flex aspect-square h-12 items-center justify-center rounded-full border border-gray-200 active:bg-gray-200"
-          onPress={() =>
-            mutate({
-              ...coords,
-              title: track.item.name,
-              uri: track.item.uri,
-              image: track.item.album.images[0]?.url,
-            })
-          }
+          onPress={() => addListenAlert()}
         >
           <FontAwesome name="map-marker" size={20} color="black" />
         </Pressable>
       </View>
     </View>
-  );
-}
-
-const duration = 2000;
-const easing = Easing.bezier(0.25, -0.5, 0.25, 1);
-
-function UserMarker({ coords }: { coords: Coords }) {
-  const sv = useSharedValue<number>(1);
-
-  useEffect(() => {
-    sv.value = withRepeat(withTiming(0, { duration, easing }), 0);
-  }, [sv]);
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    opacity: sv.value,
-    transform: [{ scale: 2.0 - sv.value }],
-  }));
-
-  return (
-    <Marker coordinate={coords} zIndex={10}>
-      <Animated.View
-        className="absolute rounded-full bg-blue-500 p-[10px]"
-        style={animatedStyle}
-      />
-      <View className="absolute rounded-full bg-blue-500 p-[10px]" />
-    </Marker>
   );
 }
 
@@ -154,7 +136,7 @@ export default function Index() {
               </Marker>
             );
           })}
-          <UserMarker coords={locationCoords} />
+          <UserLocationMarker coords={locationCoords} />
         </MapView>
         {isScrolled && (
           <Pressable
