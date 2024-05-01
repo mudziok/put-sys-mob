@@ -7,6 +7,7 @@ import { router } from "expo-router";
 import { FontAwesome } from "@expo/vector-icons";
 
 import type { Coords } from "~/utils/location";
+import RadioMarker from "~/components/RadioMarker";
 import UserLocationMarker from "~/components/UserLocationMarker";
 import { api } from "~/utils/api";
 import { useSpotifyAuth } from "~/utils/auth";
@@ -85,13 +86,17 @@ function MusicPlayer({ coords }: { coords: Coords }) {
 }
 
 export default function Index() {
+  const insets = useSafeAreaInsets();
+
   const { coords, locationCoords, setScrollCoords, isScrolled } =
     useScrollLocation();
 
-  const { data } = api.listen.all.useQuery(locationCoords, {
+  const { data: listens } = api.listen.all.useQuery(locationCoords, {
     placeholderData: (prev) => prev,
   });
-  const insets = useSafeAreaInsets();
+  const { data: radios } = api.radio.all.useQuery(locationCoords, {
+    placeholderData: (prev) => prev,
+  });
 
   return (
     <View
@@ -105,7 +110,7 @@ export default function Index() {
           onRegionChangeComplete={(coords) => setScrollCoords(coords)}
           minZoomLevel={10}
         >
-          {data?.map((marker) => {
+          {listens?.map((marker) => {
             if (!marker.location?.coordinates) return null;
             const [longitude, latitude] = marker.location.coordinates;
             if (!latitude || !longitude) return null;
@@ -136,6 +141,24 @@ export default function Index() {
               </Marker>
             );
           })}
+          {radios?.map((marker) => {
+            if (!marker.location?.coordinates) return null;
+            const [longitude, latitude] = marker.location.coordinates;
+            if (!latitude || !longitude || !listens) return null;
+            return (
+              <RadioMarker
+                key={marker.id}
+                coordinate={{
+                  latitude: latitude,
+                  longitude: longitude,
+                }}
+                radio={{
+                  name: marker.name,
+                  listens: marker.listens,
+                }}
+              />
+            );
+          })}
           <UserLocationMarker coords={locationCoords} />
         </MapView>
         {isScrolled && (
@@ -147,6 +170,7 @@ export default function Index() {
           </Pressable>
         )}
       </View>
+      {/* <Text>{JSON.stringify(radios)}</Text> */}
       {locationCoords && <MusicPlayer coords={locationCoords} />}
     </View>
   );

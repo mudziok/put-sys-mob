@@ -17,7 +17,7 @@ export const geometry = <
     data: GeometryTypes[TType];
   }>({
     dataType() {
-      return type ? `geometry(${type}, 4326)` : "geometry";
+      return type ? `geometry(${type},4326)` : "geometry";
     },
     toDriver(value) {
       return sql`ST_GeomFromGeoJSON(${JSON.stringify(value)})`;

@@ -41,13 +41,21 @@ export const listenRouter = createTRPCRouter({
         image: z.string().optional(),
       }),
     )
-    .mutation(({ ctx, input }) => {
+    .mutation(async ({ ctx, input }) => {
       const { longitude, latitude, title, uri, image } = input;
-      return ctx.db.insert(schema.listen).values({
-        location: { type: "Point", coordinates: [longitude, latitude] },
-        image,
-        uri,
-        title,
+      await ctx.db.transaction(async (tx) => {
+        const radio = await tx.query.radio.findFirst({});
+        if (!radio) {
+          tx.rollback();
+          return;
+        }
+        return await tx.insert(schema.listen).values({
+          location: { type: "Point", coordinates: [longitude, latitude] },
+          image,
+          uri,
+          title,
+          radioId: radio.id,
+        });
       });
     }),
 });

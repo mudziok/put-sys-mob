@@ -21,7 +21,15 @@ export default function RadioMarker({
   const right = radio.listens.at(2);
 
   if (!front || !left || !right) {
-    return null;
+    return (
+      <Marker {...mapMarkerProps}>
+        <View className="relative flex items-center gap-2 active:opacity-80">
+          <View className="rounded-md bg-white p-1">
+            <Text className="font-bold">{radio.name}</Text>
+          </View>
+        </View>
+      </Marker>
+    );
   }
 
   return (

@@ -4,12 +4,13 @@ import { Client } from "pg";
 import * as auth from "./schema/auth";
 import * as listen from "./schema/listen";
 import * as post from "./schema/post";
+import * as radio from "./schema/radio";
 
-export const schema = { ...auth, ...post, ...listen };
+export const schema = { ...auth, ...post, ...listen, ...radio };
 
 export * from "drizzle-orm";
 
-export { mySqlTable as tableCreator } from "./schema/_table";
+export { myPgTable as tableCreator } from "./schema/_table";
 
 const client = new Client({
   host: "localhost",
