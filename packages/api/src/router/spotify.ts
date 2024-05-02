@@ -62,18 +62,30 @@ export const spotifyRouter = createTRPCRouter({
         });
       }
 
-      const trackSchema = z.object({
-        item: z.object({
-          album: z.object({
-            images: z.array(z.object({ url: z.string() })),
-          }),
-          name: z.string(),
-          artists: z.array(z.object({ name: z.string() })),
-          uri: z.string(),
+      if (res.headers.get("content-type") === null) {
+        return { isPlaying: false as const };
+      }
+
+      const itemSchema = z.object({
+        album: z.object({
+          images: z.array(z.object({ url: z.string() })),
         }),
+        name: z.string(),
+        artists: z.array(z.object({ name: z.string() })),
+        uri: z.string(),
       });
 
-      return trackSchema.parse(await res.json());
+      const playbackSchema = z.object({
+        item: itemSchema.nullable(),
+      });
+
+      const { item } = playbackSchema.parse(await res.json());
+
+      if (!item) {
+        return { isPlaying: false as const };
+      }
+
+      return { item, isPlaying: true as const };
     }),
   // TODO: Check if this works with a Spotify Premium account, please delete this comment if it does
   play: publicProcedure

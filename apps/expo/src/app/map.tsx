@@ -17,7 +17,7 @@ function MusicPlayer({ coords }: { coords: Coords }) {
   const { accessToken } = useSpotifyAuth();
   const utils = api.useUtils();
 
-  const { data: track, refetch } = api.spotify.getCurrenlyPlaying.useQuery(
+  const { data: playback, refetch } = api.spotify.getCurrenlyPlaying.useQuery(
     { accessToken },
     { refetchInterval: 10000 },
   );
@@ -28,12 +28,23 @@ function MusicPlayer({ coords }: { coords: Coords }) {
     },
   });
 
-  if (!track) {
+  if (!playback) {
     return null;
   }
 
-  const title = track.item.name;
-  const artist = track.item.artists.map((artist) => artist.name).join(", ");
+  if (!playback.item) {
+    return (
+      <View className="flex flex-row justify-center gap-2 border-t border-gray-200 bg-gray-100 p-2">
+        <Text className="font-semibold">
+          Nothing is being played in your Spotify app
+        </Text>
+      </View>
+    );
+  }
+
+  const title = playback.item.name;
+  const artist = playback.item.artists.map((artist) => artist.name).join(", ");
+  const imageUrl = playback.item.album.images[0]?.url;
 
   const addListenAlert = () =>
     Alert.alert(
@@ -50,8 +61,8 @@ function MusicPlayer({ coords }: { coords: Coords }) {
             mutate({
               ...coords,
               title,
-              uri: track.item.uri,
-              image: track.item.album.images[0]?.url,
+              uri: playback.item.uri,
+              image: imageUrl,
             }),
         },
       ],
@@ -59,10 +70,7 @@ function MusicPlayer({ coords }: { coords: Coords }) {
 
   return (
     <View className="flex flex-row gap-2 border-t border-gray-200 bg-gray-100 p-2">
-      <Image
-        style={{ width: 64, height: 64 }}
-        source={track.item.album.images[0]?.url}
-      />
+      <Image style={{ width: 64, height: 64 }} source={imageUrl} />
       <View className="flex flex-1 flex-col items-center justify-center gap-1">
         <Text className="font-semibold">{title}</Text>
         <Text>{artist}</Text>
@@ -117,10 +125,7 @@ export default function Index() {
             return (
               <Marker
                 key={marker.id}
-                coordinate={{
-                  latitude: latitude,
-                  longitude: longitude,
-                }}
+                coordinate={{ latitude, longitude }}
                 onPress={() =>
                   router.push({
                     pathname: `/listen/[id]`,
@@ -148,14 +153,8 @@ export default function Index() {
             return (
               <RadioMarker
                 key={marker.id}
-                coordinate={{
-                  latitude: latitude,
-                  longitude: longitude,
-                }}
-                radio={{
-                  name: marker.name,
-                  listens: marker.listens,
-                }}
+                coordinate={{ latitude, longitude }}
+                radio={marker}
                 onPress={() =>
                   router.push({
                     pathname: `/radio/[id]`,

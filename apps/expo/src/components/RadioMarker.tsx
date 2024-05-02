@@ -11,6 +11,15 @@ interface Radio {
   listens: RouterOutputs["listen"]["byId"][];
 }
 
+function RadioMarkerName({ radio }: { radio: Pick<Radio, "name"> }) {
+  return (
+    <View className="flex flex-row justify-center gap-2 rounded-md bg-white p-2">
+      <FontAwesome6 name="radio" size={16} />
+      <Text className="font-bold">{radio.name}</Text>
+    </View>
+  );
+}
+
 export default function RadioMarker({
   radio,
   ...mapMarkerProps
@@ -24,11 +33,7 @@ export default function RadioMarker({
   if (!front || !left || !right) {
     return (
       <Marker {...mapMarkerProps}>
-        <View className="relative flex items-center gap-2 active:opacity-80">
-          <View className="rounded-md bg-white p-1">
-            <Text className="font-bold">{radio.name}</Text>
-          </View>
-        </View>
+        <RadioMarkerName radio={radio} />
       </Marker>
     );
   }
@@ -36,10 +41,7 @@ export default function RadioMarker({
   return (
     <Marker {...mapMarkerProps}>
       <View className="relative flex items-center gap-2 active:opacity-80">
-        <View className="flex flex-row justify-center gap-2 rounded-md bg-white p-1">
-          <FontAwesome6 name="radio" size={16} />
-          <Text className="font-bold">{radio.name}</Text>
-        </View>
+        <RadioMarkerName radio={radio} />
         <View className="relative">
           <View
             className={`absolute -translate-x-6 -rotate-12 rounded-md bg-gray-100 p-1`}
