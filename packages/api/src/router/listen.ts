@@ -11,6 +11,7 @@ export const listenRouter = createTRPCRouter({
     .input(z.object({ longitude: z.number(), latitude: z.number() }))
     .query(({ ctx, input }) => {
       const { longitude, latitude } = input;
+
       return ctx.db
         .select()
         .from(schema.listen)
@@ -43,20 +44,27 @@ export const listenRouter = createTRPCRouter({
     )
     .mutation(async ({ ctx, input }) => {
       const { longitude, latitude, title, uri, image } = input;
+
       await ctx.db.transaction(async (tx) => {
-        // TODO: Important! this query needs to find the radio
-        // closest to the listen location instead of a random one
-        const radio = await tx.query.radio.findFirst({});
-        if (!radio) {
+        const [closestRadio] = await tx
+          .select()
+          .from(schema.radio)
+          .orderBy(
+            sql`location <-> ST_SetSRID(ST_Point(${longitude}, ${latitude}), 4326)`,
+          )
+          .limit(1);
+
+        if (!closestRadio) {
           tx.rollback();
           return;
         }
+
         return await tx.insert(schema.listen).values({
           location: { type: "Point", coordinates: [longitude, latitude] },
           image,
           uri,
           title,
-          radioId: radio.id,
+          radioId: closestRadio.id,
         });
       });
     }),
