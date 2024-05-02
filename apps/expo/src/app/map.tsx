@@ -1,12 +1,12 @@
 import { Alert, Pressable, Text, View } from "react-native";
-import MapView, { Marker } from "react-native-maps";
-import Animated, { FadeInDown, FadeOutDown } from "react-native-reanimated";
+import MapView from "react-native-maps";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Image } from "expo-image";
 import { router } from "expo-router";
 import { FontAwesome } from "@expo/vector-icons";
 
 import type { Coords } from "~/utils/location";
+import ListenMarker from "~/components/ListenMarker";
 import RadioMarker from "~/components/RadioMarker";
 import UserLocationMarker from "~/components/UserLocationMarker";
 import { api } from "~/utils/api";
@@ -61,6 +61,7 @@ function MusicPlayer({ coords }: { coords: Coords }) {
             mutate({
               ...coords,
               title,
+              artist,
               uri: playback.item.uri,
               image: imageUrl,
             }),
@@ -123,27 +124,17 @@ export default function Index() {
             const [longitude, latitude] = marker.location.coordinates;
             if (!latitude || !longitude) return null;
             return (
-              <Marker
+              <ListenMarker
                 key={marker.id}
+                listen={marker}
                 coordinate={{ latitude, longitude }}
                 onPress={() =>
                   router.push({
-                    pathname: `/listen/[id]`,
-                    params: { id: marker.id.toString() },
+                    pathname: `/listen/[listenId]`,
+                    params: { listenId: marker.id.toString() },
                   })
                 }
-              >
-                <Animated.View
-                  className="rounded-md bg-gray-100 p-1 active:opacity-80"
-                  entering={FadeInDown}
-                  exiting={FadeOutDown}
-                >
-                  <Image
-                    style={{ width: 48, height: 48 }}
-                    source={marker.image}
-                  />
-                </Animated.View>
-              </Marker>
+              />
             );
           })}
           {radios?.map((marker) => {
@@ -157,8 +148,8 @@ export default function Index() {
                 radio={marker}
                 onPress={() =>
                   router.push({
-                    pathname: `/radio/[id]`,
-                    params: { id: marker.id.toString() },
+                    pathname: `/radio/[radioId]`,
+                    params: { radioId: marker.id.toString() },
                   })
                 }
               />

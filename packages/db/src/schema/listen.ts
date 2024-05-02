@@ -8,6 +8,7 @@ import { radio } from "./radio";
 export const listen = myPgTable("listen", {
   id: serial("id").primaryKey(),
   title: varchar("name", { length: 256 }).notNull(),
+  artist: varchar("artist", { length: 256 }).notNull(),
   location: geometry("location", { type: "Point" }),
   createdAt: timestamp("created_at")
     .default(sql`CURRENT_TIMESTAMP`)

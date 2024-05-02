@@ -1,14 +1,14 @@
 import { Pressable, Text, View } from "react-native";
-import { Stack, useGlobalSearchParams } from "expo-router";
+import { Stack, useLocalSearchParams } from "expo-router";
 import { FontAwesome } from "@expo/vector-icons";
 
 import { api } from "~/utils/api";
 
 export default function Radio() {
-  const { id } = useGlobalSearchParams();
-  if (!id || typeof id !== "string") throw new Error("unreachable");
+  const { radioId } = useLocalSearchParams();
+  if (!radioId || typeof radioId !== "string") throw new Error("unreachable");
 
-  const { data: radio } = api.radio.byId.useQuery({ id: parseInt(id) });
+  const { data: radio } = api.radio.byId.useQuery({ id: parseInt(radioId) });
 
   if (!radio) {
     return (

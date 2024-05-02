@@ -23,11 +23,11 @@ export default function RootLayout() {
             <Stack.Screen name="map" options={{ headerShown: false }} />
             <Stack.Screen name="index" options={{ headerShown: false }} />
             <Stack.Screen
-              name="listen/[id]"
-              options={{ presentation: "modal" }}
+              name="listen/[listenId]"
+              options={{ presentation: "modal", headerShown: false }}
             />
             <Stack.Screen
-              name="radio/[id]"
+              name="radio/[radioId]"
               options={{ presentation: "modal" }}
             />
           </Stack>
