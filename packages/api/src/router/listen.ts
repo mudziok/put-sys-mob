@@ -22,15 +22,22 @@ export const listenRouter = createTRPCRouter({
   byId: publicProcedure
     .input(z.object({ id: z.number() }))
     .query(async ({ ctx, input }) => {
-      const listen = await ctx.db.query.listen.findFirst({
-        where: eq(schema.listen.id, input.id),
-      });
+      const [row] = await ctx.db
+        .select()
+        .from(schema.listen)
+        .where(eq(schema.listen.id, input.id))
+        .leftJoin(schema.radio, eq(schema.radio.id, schema.listen.radioId));
 
-      if (!listen) {
+      if (!row) {
         throw new Error("Listen not found");
       }
 
-      return listen;
+      const { listen, radio } = row;
+
+      return {
+        ...listen,
+        radio,
+      };
     }),
   create: publicProcedure
     .input(

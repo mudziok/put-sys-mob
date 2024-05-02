@@ -6,10 +6,7 @@ import { FontAwesome6 } from "@expo/vector-icons";
 
 import type { RouterOutputs } from "~/utils/api";
 
-interface Radio {
-  name: string;
-  listens: RouterOutputs["listen"]["byId"][];
-}
+type Radio = RouterOutputs["radio"]["byId"];
 
 function RadioMarkerName({ radio }: { radio: Pick<Radio, "name"> }) {
   return (

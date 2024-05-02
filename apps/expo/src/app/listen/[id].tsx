@@ -11,12 +11,12 @@ export default function Listen() {
   const { accessToken } = useSpotifyAuth();
   if (!id || typeof id !== "string") throw new Error("unreachable");
 
-  const { data } = api.listen.byId.useQuery({ id: parseInt(id) });
+  const { data: listen } = api.listen.byId.useQuery({ id: parseInt(id) });
   const { mutate: play } = api.spotify.play.useMutation({
     onError: (error) => Alert.alert("Error", error.message, [{ text: "Ok" }]),
   });
 
-  if (!data) {
+  if (!listen) {
     return (
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
         <Text>Loading...</Text>
@@ -26,11 +26,14 @@ export default function Listen() {
 
   return (
     <View className="flex-1 items-center justify-center gap-2">
-      <Stack.Screen options={{ title: data.title }} />
-      <Image style={{ width: 256, height: 256 }} source={data.image} />
-      <Text className="text-xl font-bold">{data.title}</Text>
+      <Stack.Screen options={{ title: listen.title }} />
+      <Image style={{ width: 256, height: 256 }} source={listen.image} />
+      <Text className="text-xl font-bold">{listen.title}</Text>
+      {listen.radio && (
+        <Text className="text-xl">On the {listen.radio.name} playlist</Text>
+      )}
       <Pressable
-        onPress={() => play({ uri: data.uri, accessToken })}
+        onPress={() => play({ uri: listen.uri, accessToken })}
         className="flex flex-row items-center gap-2 rounded-full bg-green-400 px-4 py-2 active:bg-green-500"
       >
         <FontAwesome name="spotify" size={20} />
