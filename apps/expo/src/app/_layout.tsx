@@ -28,7 +28,7 @@ export default function RootLayout() {
             />
             <Stack.Screen
               name="radio/[radioId]"
-              options={{ presentation: "modal" }}
+              options={{ presentation: "modal", headerShown: false }}
             />
           </Stack>
           <StatusBar />

@@ -1,4 +1,4 @@
-import { Alert, Pressable, Text, View } from "react-native";
+import { Alert, Pressable, ScrollView, Text, View } from "react-native";
 import MapView from "react-native-maps";
 import { Image } from "expo-image";
 import { router, Stack, useLocalSearchParams } from "expo-router";
@@ -143,10 +143,10 @@ export default function Listen() {
   }
 
   return (
-    <View className="flex-1 items-center justify-start">
+    <ScrollView>
       <Stack.Screen options={{ title: listen.title }} />
       <ListenHeader listen={listen} />
       <ListenDescription listen={listen} />
-    </View>
+    </ScrollView>
   );
 }
