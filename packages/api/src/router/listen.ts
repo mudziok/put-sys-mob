@@ -32,7 +32,6 @@ export const listenRouter = createTRPCRouter({
       }
 
       const profile = await getUserProfile({ accessToken: input.accessToken });
-      console.log(profile);
 
       const [row] = await ctx.db
         .select()
@@ -123,6 +122,7 @@ export const listenRouter = createTRPCRouter({
         const [closestRadio] = await tx
           .select()
           .from(schema.radio)
+          .where(eq(schema.radio.autogenerateTracklist, true))
           .orderBy(
             sql`location <-> ST_SetSRID(ST_Point(${longitude}, ${latitude}), 4326)`,
           )

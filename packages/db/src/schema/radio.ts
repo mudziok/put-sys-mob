@@ -1,5 +1,5 @@
 import { relations, sql } from "drizzle-orm";
-import { serial, timestamp, varchar } from "drizzle-orm/pg-core";
+import { boolean, serial, timestamp, varchar } from "drizzle-orm/pg-core";
 
 import { geometry } from "../types/geometry";
 import { myPgTable } from "./_table";
@@ -13,6 +13,7 @@ export const radio = myPgTable("radio", {
     .default(sql`CURRENT_TIMESTAMP`)
     .notNull(),
   updatedAt: timestamp("updatedAt").defaultNow(),
+  autogenerateTracklist: boolean("autogenerate_tracklist").default(true),
 });
 
 export const radioRelations = relations(radio, ({ many }) => ({
