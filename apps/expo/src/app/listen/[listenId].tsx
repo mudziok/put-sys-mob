@@ -1,4 +1,11 @@
-import { Alert, Pressable, ScrollView, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  ScrollView,
+  Text,
+  View,
+} from "react-native";
 import MapView from "react-native-maps";
 import { Image } from "expo-image";
 import { router, Stack, useLocalSearchParams } from "expo-router";
@@ -28,11 +35,53 @@ function PlayButton({ uri }: { uri: Listen["uri"] }) {
   );
 }
 
-function ListenHeader({
-  listen,
-}: {
-  listen: Pick<Listen, "image" | "title" | "artist" | "uri">;
-}) {
+function LikeButton({ listen }: { listen: Listen }) {
+  const { isReacted } = listen;
+
+  const utils = api.useUtils();
+  const { accessToken } = useSpotifyAuth();
+  const { mutate: setReaction } = api.listen.setReaction.useMutation({
+    async onMutate() {
+      await utils.listen.byId.cancel({ id: listen.id, accessToken });
+      const previousListen = utils.listen.byId.getData({
+        id: listen.id,
+        accessToken,
+      });
+      if (previousListen) {
+        utils.listen.byId.setData({ id: listen.id, accessToken }, () => ({
+          ...previousListen,
+          reactionCount: previousListen.reactionCount + (isReacted ? -1 : 1),
+          isReacted: !isReacted,
+        }));
+      }
+      return { previousListen };
+    },
+    onError: (error, _, context) => {
+      utils.listen.byId.setData(
+        { id: listen.id, accessToken },
+        () => context?.previousListen,
+      );
+      Alert.alert("Error", error.message, [{ text: "Ok" }]);
+    },
+    async onSettled() {
+      await utils.listen.byId.invalidate({ id: listen.id, accessToken });
+    },
+  });
+
+  return (
+    <Pressable
+      className="flex w-20 flex-row items-center justify-center gap-2 rounded-full bg-gray-200 px-4 py-2 active:bg-gray-300"
+      onPress={() =>
+        setReaction({ isReacted: !isReacted, listenId: listen.id, accessToken })
+      }
+    >
+      <FontAwesome name={isReacted ? "heart" : "heart-o"} size={20} />
+      <Text>{listen.reactionCount}</Text>
+    </Pressable>
+  );
+}
+
+function ListenHeader({ listen }: { listen: Listen }) {
   return (
     <View className="relative flex w-full items-center gap-4 bg-black p-6">
       {/* TODO: Test if this image hack can be replaced with ImageBackground */}
@@ -59,7 +108,10 @@ function ListenHeader({
         <Text className="text-xl font-bold text-white">{listen.title}</Text>
         <Text className="text-xl text-white">{listen.artist}</Text>
       </View>
-      <PlayButton uri={listen.uri} />
+      <View className="flex flex-row gap-4">
+        <PlayButton uri={listen.uri} />
+        <LikeButton listen={listen} />
+      </View>
     </View>
   );
 }
@@ -130,14 +182,18 @@ function ListenDescription({ listen }: { listen: Listen }) {
 
 export default function Listen() {
   const { listenId } = useLocalSearchParams();
+  const { accessToken } = useSpotifyAuth();
   if (!listenId || typeof listenId !== "string") throw new Error("unreachable");
 
-  const { data: listen } = api.listen.byId.useQuery({ id: parseInt(listenId) });
+  const { data: listen } = api.listen.byId.useQuery({
+    id: parseInt(listenId),
+    accessToken,
+  });
 
   if (!listen) {
     return (
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-        <Text>Loading...</Text>
+        <ActivityIndicator />
       </View>
     );
   }

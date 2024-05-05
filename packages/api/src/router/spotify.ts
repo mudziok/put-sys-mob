@@ -8,6 +8,33 @@ const client_id = env.AUTH_SPOTIFY_CLIENT_ID;
 const client_secret = env.AUTH_SPOTIFY_CLIENT_SECRET;
 const redirect_uri = env.AUTH_SPOTIFY_REDIRECT_URI;
 
+// TODO: Wrap this function with some sort of caching mechanism
+export const getUserProfile = async ({
+  accessToken,
+}: {
+  accessToken: string;
+}) => {
+  const res = await fetch("https://api.spotify.com/v1/me", {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+
+  if (!res.ok) {
+    throw new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Could not recieve data from Spotify API.",
+    });
+  }
+
+  const profileSchema = z.object({
+    id: z.string(),
+    display_name: z.string(),
+  });
+
+  return profileSchema.parse(await res.json());
+};
+
 export const spotifyRouter = createTRPCRouter({
   getAccessToken: publicProcedure
     .input(z.object({ code: z.string() }))
@@ -115,5 +142,17 @@ export const spotifyRouter = createTRPCRouter({
           message: "Could not recieve data from Spotify API.",
         });
       }
+    }),
+  getProfile: publicProcedure
+    .input(z.object({ accessToken: z.string().optional(), uri: z.string() }))
+    .query(async ({ input: { accessToken } }) => {
+      if (!accessToken) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "An unexpected error occurred, please try again later.",
+        });
+      }
+
+      return getUserProfile({ accessToken });
     }),
 });

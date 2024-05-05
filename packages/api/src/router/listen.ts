@@ -1,8 +1,10 @@
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
-import { eq, schema, sql } from "@acme/db";
+import { and, count, eq, schema, sql } from "@acme/db";
 
 import { createTRPCRouter, publicProcedure } from "../trpc";
+import { getUserProfile } from "./spotify";
 
 const MAP_DISCOVERY_RADIUS = 0.1;
 
@@ -20,8 +22,18 @@ export const listenRouter = createTRPCRouter({
         );
     }),
   byId: publicProcedure
-    .input(z.object({ id: z.number() }))
+    .input(z.object({ id: z.number(), accessToken: z.string().optional() }))
     .query(async ({ ctx, input }) => {
+      if (!input.accessToken) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "An unexpected error occurred, please try again later.",
+        });
+      }
+
+      const profile = await getUserProfile({ accessToken: input.accessToken });
+      console.log(profile);
+
       const [row] = await ctx.db
         .select()
         .from(schema.listen)
@@ -34,10 +46,64 @@ export const listenRouter = createTRPCRouter({
 
       const { listen, radio } = row;
 
+      const [countRow] = await ctx.db
+        .select({ count: count() })
+        .from(schema.listenReactions)
+        .where(eq(schema.listenReactions.listenId, listen.id));
+
+      const [userReactionRow] = await ctx.db
+        .select()
+        .from(schema.listenReactions)
+        .where(
+          and(
+            eq(schema.listenReactions.listenId, listen.id),
+            eq(schema.listenReactions.userId, profile.id),
+          ),
+        );
+
+      const reactionCount = countRow?.count ?? 0;
+      const isReacted = !!userReactionRow;
+
       return {
         ...listen,
         radio,
+        reactionCount,
+        isReacted,
       };
+    }),
+  setReaction: publicProcedure
+    .input(
+      z.object({
+        isReacted: z.boolean(),
+        listenId: z.number(),
+        accessToken: z.string().optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input: { isReacted, listenId, accessToken } }) => {
+      if (!accessToken) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "An unexpected error occurred, please try again later.",
+        });
+      }
+
+      const profile = await getUserProfile({ accessToken });
+
+      if (isReacted) {
+        await ctx.db.insert(schema.listenReactions).values({
+          listenId,
+          userId: profile.id,
+        });
+      } else {
+        await ctx.db
+          .delete(schema.listenReactions)
+          .where(
+            and(
+              eq(schema.listenReactions.listenId, listenId),
+              eq(schema.listenReactions.userId, profile.id),
+            ),
+          );
+      }
     }),
   create: publicProcedure
     .input(

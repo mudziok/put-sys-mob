@@ -1,4 +1,10 @@
-import { Pressable, ScrollView, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  Text,
+  View,
+} from "react-native";
 import MapView from "react-native-maps";
 import { Image } from "expo-image";
 import { router, Stack, useLocalSearchParams } from "expo-router";
@@ -112,23 +118,53 @@ function RadioDescriptionLocation({ radio }: { radio: Radio }) {
   );
 }
 
+function RadioTracklistListen({
+  listen,
+}: {
+  listen: Radio["listens"][number];
+}) {
+  return (
+    <Pressable
+      onPress={() =>
+        router.push({
+          pathname: `/listen/[listenId]`,
+          params: { listenId: listen.id.toString() },
+        })
+      }
+      className="flex w-full flex-row items-center gap-2 rounded-md px-4 active:bg-gray-200"
+    >
+      <Image style={{ width: 56, height: 56 }} source={listen.image} />
+      <View className="flex flex-1 flex-col">
+        <Text className="text-lg font-semibold">{listen.title}</Text>
+        <Text className="text-lg" numberOfLines={1}>
+          {listen.artist}
+        </Text>
+      </View>
+      <View className="opacity-10">
+        <FontAwesome6 name="chevron-right" size={20} />
+      </View>
+    </Pressable>
+  );
+}
+
 function RadioTracklist({ listens }: { listens: Radio["listens"] }) {
   return (
-    <View className="flex items-start gap-2">
-      <Text className="text-xl font-semibold">Tracklist</Text>
+    <View className="-mx-4 flex items-start gap-2">
+      <Text className="px-4 text-xl font-semibold">Tracklist</Text>
       {listens.map((listen) => (
-        <Pressable
-          key={listen.id}
-          onPress={() =>
-            router.push({
-              pathname: `/listen/[listenId]`,
-              params: { listenId: listen.id.toString() },
-            })
-          }
-        >
-          <Text className="text-xl">{listen.title}</Text>
-        </Pressable>
+        <RadioTracklistListen key={listen.id} listen={listen} />
       ))}
+    </View>
+  );
+}
+
+function RadioDescription({ radio }: { radio: Radio }) {
+  return (
+    <View className="w-full gap-2 p-4">
+      <RadioTracklist listens={radio.listens} />
+      <View className="border-t border-gray-200" />
+      <RadioDescriptionLocation radio={radio} />
+      <View className="border-t border-gray-200" />
     </View>
   );
 }
@@ -142,7 +178,7 @@ export default function Radio() {
   if (!radio) {
     return (
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-        <Text>Loading...</Text>
+        <ActivityIndicator />
       </View>
     );
   }
@@ -151,10 +187,7 @@ export default function Radio() {
     <ScrollView>
       <Stack.Screen options={{ title: radio.name }} />
       <RadioHeader radio={radio} />
-      <View className="flex w-full flex-col gap-2 p-4">
-        <RadioTracklist listens={radio.listens} />
-        <RadioDescriptionLocation radio={radio} />
-      </View>
+      <RadioDescription radio={radio} />
     </ScrollView>
   );
 }

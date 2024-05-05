@@ -3,10 +3,17 @@ import { Client } from "pg";
 
 import * as auth from "./schema/auth";
 import * as listen from "./schema/listen";
+import * as listenReactions from "./schema/listenReactions";
 import * as post from "./schema/post";
 import * as radio from "./schema/radio";
 
-export const schema = { ...auth, ...post, ...listen, ...radio };
+export const schema = {
+  ...auth,
+  ...post,
+  ...listen,
+  ...radio,
+  ...listenReactions,
+};
 
 export * from "drizzle-orm";
 

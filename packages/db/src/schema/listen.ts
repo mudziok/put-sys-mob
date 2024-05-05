@@ -3,6 +3,7 @@ import { integer, serial, timestamp, varchar } from "drizzle-orm/pg-core";
 
 import { geometry } from "../types/geometry";
 import { myPgTable } from "./_table";
+import { listenReactions } from "./listenReactions";
 import { radio } from "./radio";
 
 export const listen = myPgTable("listen", {
@@ -19,9 +20,10 @@ export const listen = myPgTable("listen", {
   radioId: integer("radio_id"),
 });
 
-export const listenRelations = relations(listen, ({ one }) => ({
+export const listenRelations = relations(listen, ({ one, many }) => ({
   radio: one(radio, {
     fields: [listen.radioId],
     references: [radio.id],
   }),
+  reactions: many(listenReactions),
 }));
