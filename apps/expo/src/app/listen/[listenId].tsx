@@ -123,7 +123,7 @@ function ListenDescriptionRadio({ radio }: { radio: Listen["radio"] }) {
 
   return (
     <Pressable
-      className="flex flex-row items-center gap-2"
+      className="flex flex-row items-center gap-2 active:opacity-70"
       onPress={() =>
         router.push({
           pathname: `/radio/[radioId]`,

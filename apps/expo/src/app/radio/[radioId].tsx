@@ -148,6 +148,12 @@ function RadioTracklistListen({
 }
 
 function RadioTracklist({ listens }: { listens: Radio["listens"] }) {
+  if (listens.length === 0) {
+    return (
+      <Text className="text-xl font-semibold">No tracklist available</Text>
+    );
+  }
+
   return (
     <View className="-mx-4 flex items-start gap-2">
       <Text className="px-4 text-xl font-semibold">Tracklist</Text>

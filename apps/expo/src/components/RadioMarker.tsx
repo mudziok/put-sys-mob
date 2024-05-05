@@ -30,7 +30,9 @@ export default function RadioMarker({
   if (!front || !left || !right) {
     return (
       <Marker {...mapMarkerProps}>
-        <RadioMarkerName radio={radio} />
+        <View className="active:opacity-80">
+          <RadioMarkerName radio={radio} />
+        </View>
       </Marker>
     );
   }
