@@ -18,15 +18,16 @@ import { useSpotifyAuth } from "~/utils/auth";
 
 type Listen = RouterOutputs["listen"]["byId"];
 
-function PlayButton({ uri }: { uri: Listen["uri"] }) {
+function PlayButton({ listen }: { listen: Listen }) {
   const { accessToken } = useSpotifyAuth();
   const { mutate: play } = api.spotify.play.useMutation({
     onError: (error) => Alert.alert("Error", error.message, [{ text: "Ok" }]),
   });
+  const { contextUri, itemUri } = listen;
 
   return (
     <Pressable
-      onPress={() => play({ uri, accessToken })}
+      onPress={() => play({ contextUri, itemUri, accessToken })}
       className="flex flex-row items-center gap-2 rounded-full bg-green-400 px-4 py-2 active:bg-green-500"
     >
       <FontAwesome name="spotify" size={20} />
@@ -109,7 +110,7 @@ function ListenHeader({ listen }: { listen: Listen }) {
         <Text className="text-xl text-white">{listen.artist}</Text>
       </View>
       <View className="flex flex-row gap-4">
-        <PlayButton uri={listen.uri} />
+        <PlayButton listen={listen} />
         <LikeButton listen={listen} />
       </View>
     </View>

@@ -29,10 +29,14 @@ export const SpotifyAuthProvider = ({ children }: { children: ReactNode }) => {
         "user-read-email",
         "playlist-modify-public",
         "user-read-currently-playing",
+        "user-modify-playback-state",
       ],
       // To follow the "Authorization Code Flow" to fetch token after authorizationEndpoint
       // this must be set to false
       usePKCE: false,
+      extraParams: {
+        show_dialog: "true",
+      },
       redirectUri: makeRedirectUri(),
     },
     discovery,

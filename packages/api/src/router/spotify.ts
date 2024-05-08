@@ -8,6 +8,24 @@ const client_id = env.AUTH_SPOTIFY_CLIENT_ID;
 const client_secret = env.AUTH_SPOTIFY_CLIENT_SECRET;
 const redirect_uri = env.AUTH_SPOTIFY_REDIRECT_URI;
 
+const contextSchema = z.object({
+  uri: z.string(),
+});
+
+const itemSchema = z.object({
+  album: z.object({
+    images: z.array(z.object({ url: z.string() })),
+  }),
+  name: z.string(),
+  artists: z.array(z.object({ name: z.string() })),
+  uri: z.string(),
+});
+
+const playbackSchema = z.object({
+  context: contextSchema.nullable(),
+  item: itemSchema.nullable(),
+});
+
 // TODO: Wrap this function with some sort of caching mechanism
 export const getUserProfile = async ({
   accessToken,
@@ -69,7 +87,7 @@ export const spotifyRouter = createTRPCRouter({
       if (!accessToken) {
         throw new TRPCError({
           code: "FORBIDDEN",
-          message: "An unexpected error occurred, please try again later.",
+          message: "No access token provided.",
         });
       }
 
@@ -93,53 +111,48 @@ export const spotifyRouter = createTRPCRouter({
         return { isPlaying: false as const };
       }
 
-      const itemSchema = z.object({
-        album: z.object({
-          images: z.array(z.object({ url: z.string() })),
-        }),
-        name: z.string(),
-        artists: z.array(z.object({ name: z.string() })),
-        uri: z.string(),
-      });
+      const { context, item } = playbackSchema.parse(await res.json());
 
-      const playbackSchema = z.object({
-        item: itemSchema.nullable(),
-      });
-
-      const { item } = playbackSchema.parse(await res.json());
-
-      if (!item) {
+      if (!context || !item) {
         return { isPlaying: false as const };
       }
 
-      return { item, isPlaying: true as const };
+      return { context, item, isPlaying: true as const };
     }),
   // TODO: Check if this works with a Spotify Premium account, please delete this comment if it does
   play: publicProcedure
-    .input(z.object({ accessToken: z.string().optional(), uri: z.string() }))
-    .mutation(async ({ input: { accessToken, uri } }) => {
+    .input(
+      z.object({
+        accessToken: z.string().optional(),
+        contextUri: z.string(),
+        itemUri: z.string(),
+      }),
+    )
+    .mutation(async ({ input: { accessToken, contextUri, itemUri } }) => {
       if (!accessToken) {
         throw new TRPCError({
           code: "FORBIDDEN",
-          message: "An unexpected error occurred, please try again later.",
+          message: "No access token provided.",
         });
       }
-
-      const params = new URLSearchParams();
-      params.append("context_uri", uri);
 
       const res = await fetch("https://api.spotify.com/v1/me/player/play", {
         method: "PUT",
         headers: {
           Authorization: `Bearer ${accessToken}`,
         },
-        body: params,
+        body: JSON.stringify({
+          context_uri: contextUri,
+          offset: {
+            uri: itemUri,
+          },
+        }),
       });
 
       if (!res.ok) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: "Could not recieve data from Spotify API.",
+          message: "Could not make request to Spotify API.",
         });
       }
     }),

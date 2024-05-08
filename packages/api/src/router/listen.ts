@@ -111,12 +111,14 @@ export const listenRouter = createTRPCRouter({
         latitude: z.number(),
         title: z.string(),
         artist: z.string(),
-        uri: z.string(),
+        itemUri: z.string(),
+        contextUri: z.string(),
         image: z.string().optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const { longitude, latitude, title, uri, image, artist } = input;
+      const { longitude, latitude, title, contextUri, itemUri, image, artist } =
+        input;
 
       await ctx.db.transaction(async (tx) => {
         const [closestRadio] = await tx
@@ -137,7 +139,8 @@ export const listenRouter = createTRPCRouter({
           location: { type: "Point", coordinates: [longitude, latitude] },
           artist,
           image,
-          uri,
+          contextUri,
+          itemUri,
           title,
           radioId: closestRadio.id,
         });

@@ -15,7 +15,8 @@ export const listen = myPgTable("listen", {
     .default(sql`CURRENT_TIMESTAMP`)
     .notNull(),
   updatedAt: timestamp("updatedAt").defaultNow(),
-  uri: varchar("uri", { length: 256 }).notNull(),
+  itemUri: varchar("item_uri", { length: 256 }).notNull(),
+  contextUri: varchar("context_uri", { length: 256 }).notNull(),
   image: varchar("image", { length: 256 }),
   radioId: integer("radio_id"),
 });
