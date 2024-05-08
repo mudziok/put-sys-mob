@@ -30,3 +30,4 @@ const client = new Client({
 await client.connect();
 
 export const db = drizzle(client, { schema });
+export type DB = typeof db;

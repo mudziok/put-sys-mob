@@ -1,6 +1,9 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
+import type { DB } from "@acme/db";
+import { eq, schema, sql } from "@acme/db";
+
 import { env } from "../../env";
 import { createTRPCRouter, publicProcedure } from "../trpc";
 
@@ -21,6 +24,19 @@ const itemSchema = z.object({
 const playbackSchema = z.object({
   item: itemSchema.nullable(),
 });
+
+async function incrementPlayCount({
+  itemUri,
+  db,
+}: {
+  itemUri: string;
+  db: DB;
+}) {
+  await db
+    .update(schema.listen)
+    .set({ playCount: sql`${schema.listen.playCount} + 1` })
+    .where(eq(schema.listen.itemUri, itemUri));
+}
 
 async function addToQueue({
   uri,
@@ -149,7 +165,7 @@ export const spotifyRouter = createTRPCRouter({
         itemUri: z.string(),
       }),
     )
-    .mutation(async ({ input: { accessToken, contextUri, itemUri } }) => {
+    .mutation(async ({ input: { accessToken, contextUri, itemUri }, ctx }) => {
       if (!accessToken) {
         throw new TRPCError({
           code: "FORBIDDEN",
@@ -176,6 +192,8 @@ export const spotifyRouter = createTRPCRouter({
           message: "Could not make request to Spotify API.",
         });
       }
+
+      await incrementPlayCount({ db: ctx.db, itemUri });
     }),
   addToQueue: publicProcedure
     .input(

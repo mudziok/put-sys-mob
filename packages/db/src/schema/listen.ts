@@ -18,6 +18,7 @@ export const listen = myPgTable("listen", {
   itemUri: varchar("item_uri", { length: 256 }).notNull(),
   contextUri: varchar("context_uri", { length: 256 }).notNull(),
   image: varchar("image", { length: 256 }),
+  playCount: integer("play_count").default(0).notNull(),
   radioId: integer("radio_id"),
 });
 

@@ -18,10 +18,43 @@ import { useSpotifyAuth } from "~/utils/auth";
 
 type Listen = RouterOutputs["listen"]["byId"];
 
+function PlayCount({ listen }: { listen: Listen }) {
+  return (
+    <View className="flex w-20 flex-row items-center justify-center gap-2 rounded-full bg-gray-200 px-4 py-2 active:bg-gray-300">
+      <FontAwesome6 name="itunes-note" size={20} />
+      <Text>{listen.playCount}</Text>
+    </View>
+  );
+}
+
 function PlayButton({ listen }: { listen: Listen }) {
   const { accessToken } = useSpotifyAuth();
+  const utils = api.useUtils();
   const { mutate: play } = api.spotify.play.useMutation({
-    onError: (error) => Alert.alert("Error", error.message, [{ text: "Ok" }]),
+    async onMutate() {
+      await utils.listen.byId.cancel({ id: listen.id, accessToken });
+      const previousListen = utils.listen.byId.getData({
+        id: listen.id,
+        accessToken,
+      });
+      if (previousListen) {
+        utils.listen.byId.setData({ id: listen.id, accessToken }, () => ({
+          ...previousListen,
+          playCount: previousListen.playCount + 1,
+        }));
+      }
+      return { previousListen };
+    },
+    onError: (error, _, context) => {
+      utils.listen.byId.setData(
+        { id: listen.id, accessToken },
+        () => context?.previousListen,
+      );
+      Alert.alert("Error", error.message, [{ text: "Ok" }]);
+    },
+    async onSettled() {
+      await utils.listen.byId.invalidate({ id: listen.id, accessToken });
+    },
   });
   const { contextUri, itemUri } = listen;
 
@@ -112,6 +145,7 @@ function ListenHeader({ listen }: { listen: Listen }) {
       <View className="flex flex-row gap-4">
         <PlayButton listen={listen} />
         <LikeButton listen={listen} />
+        <PlayCount listen={listen} />
       </View>
     </View>
   );
