@@ -8,13 +8,10 @@ const client_id = env.AUTH_SPOTIFY_CLIENT_ID;
 const client_secret = env.AUTH_SPOTIFY_CLIENT_SECRET;
 const redirect_uri = env.AUTH_SPOTIFY_REDIRECT_URI;
 
-const contextSchema = z.object({
-  uri: z.string(),
-});
-
 const itemSchema = z.object({
   album: z.object({
     images: z.array(z.object({ url: z.string() })),
+    uri: z.string(),
   }),
   name: z.string(),
   artists: z.array(z.object({ name: z.string() })),
@@ -22,16 +19,41 @@ const itemSchema = z.object({
 });
 
 const playbackSchema = z.object({
-  context: contextSchema.nullable(),
   item: itemSchema.nullable(),
 });
 
-// TODO: Wrap this function with some sort of caching mechanism
-export const getUserProfile = async ({
+async function addToQueue({
+  uri,
   accessToken,
 }: {
+  uri: string;
   accessToken: string;
-}) => {
+}) {
+  const searchParams = new URLSearchParams({
+    uri,
+  }).toString();
+
+  const res = await fetch(
+    "https://api.spotify.com/v1/me/player/queue?" + searchParams,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    },
+  );
+
+  if (!res.ok) {
+    console.error(await res.json());
+    throw new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Could not make request to Spotify API.",
+    });
+  }
+}
+
+// TODO: Wrap this function with some sort of caching mechanism
+export async function getUserProfile({ accessToken }: { accessToken: string }) {
   const res = await fetch("https://api.spotify.com/v1/me", {
     headers: {
       Authorization: `Bearer ${accessToken}`,
@@ -51,7 +73,7 @@ export const getUserProfile = async ({
   });
 
   return profileSchema.parse(await res.json());
-};
+}
 
 export const spotifyRouter = createTRPCRouter({
   getAccessToken: publicProcedure
@@ -111,15 +133,14 @@ export const spotifyRouter = createTRPCRouter({
         return { isPlaying: false as const };
       }
 
-      const { context, item } = playbackSchema.parse(await res.json());
+      const { item } = playbackSchema.parse(await res.json());
 
-      if (!context || !item) {
+      if (!item) {
         return { isPlaying: false as const };
       }
 
-      return { context, item, isPlaying: true as const };
+      return { item, isPlaying: true as const };
     }),
-  // TODO: Check if this works with a Spotify Premium account, please delete this comment if it does
   play: publicProcedure
     .input(
       z.object({
@@ -154,6 +175,25 @@ export const spotifyRouter = createTRPCRouter({
           code: "INTERNAL_SERVER_ERROR",
           message: "Could not make request to Spotify API.",
         });
+      }
+    }),
+  addToQueue: publicProcedure
+    .input(
+      z.object({
+        accessToken: z.string().optional(),
+        uris: z.string().array(),
+      }),
+    )
+    .mutation(async ({ input: { accessToken, uris } }) => {
+      if (!accessToken) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "No access token provided.",
+        });
+      }
+
+      for (const uri of uris) {
+        await addToQueue({ uri, accessToken });
       }
     }),
   getProfile: publicProcedure

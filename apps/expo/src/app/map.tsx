@@ -63,7 +63,7 @@ function MusicPlayer({ coords }: { coords: Coords }) {
               title,
               artist,
               itemUri: playback.item.uri,
-              contextUri: playback.context.uri,
+              contextUri: playback.item.album.uri,
               image: imageUrl,
             }),
         },

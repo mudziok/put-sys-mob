@@ -1,5 +1,6 @@
 import {
   ActivityIndicator,
+  Alert,
   Pressable,
   ScrollView,
   Text,
@@ -13,19 +14,30 @@ import { FontAwesome, FontAwesome6 } from "@expo/vector-icons";
 import type { RouterOutputs } from "~/utils/api";
 import RadioMarker from "~/components/RadioMarker";
 import { api } from "~/utils/api";
+import { useSpotifyAuth } from "~/utils/auth";
 
 type Radio = RouterOutputs["radio"]["byId"];
 
-function AddToQueueButton() {
+function AddToQueueButton({ radio }: { radio: Radio }) {
+  const { accessToken } = useSpotifyAuth();
+  const { mutate: addToQueue } = api.spotify.addToQueue.useMutation({
+    onError: (error) => Alert.alert("Error", error.message, [{ text: "Ok" }]),
+  });
+
+  const uris = radio.listens.map((listen) => listen.itemUri);
+
   return (
-    <Pressable className="flex flex-row items-center gap-2 rounded-full bg-green-400 px-4 py-2 active:bg-green-500">
+    <Pressable
+      className="flex flex-row items-center gap-2 rounded-full bg-green-400 px-4 py-2 active:bg-green-500"
+      onPress={() => addToQueue({ uris, accessToken })}
+    >
       <FontAwesome name="spotify" size={20} />
       <Text>Add playlist to queue</Text>
     </Pressable>
   );
 }
 
-function RadioHeader({ radio }: { radio: Pick<Radio, "listens" | "name"> }) {
+function RadioHeader({ radio }: { radio: Radio }) {
   const right = radio.listens.at(0);
   const front = radio.listens.at(1);
   const left = radio.listens.at(2);
@@ -85,7 +97,7 @@ function RadioHeader({ radio }: { radio: Pick<Radio, "listens" | "name"> }) {
         <FontAwesome6 name="radio" size={16} color="white" />
         <Text className="text-xl font-bold text-white">{radio.name}</Text>
       </View>
-      <AddToQueueButton />
+      <AddToQueueButton radio={radio} />
     </View>
   );
 }
