@@ -166,6 +166,13 @@ export default function Index() {
             <FontAwesome name="location-arrow" size={20} color="black" />
           </Pressable>
         )}
+        <Pressable
+          className="absolute left-2 flex aspect-square h-12 items-center justify-center rounded-full border border-gray-200 bg-gray-100 active:bg-gray-200"
+          style={{ top: insets.top + 8 }}
+          onPress={() => router.push({ pathname: `/settings` })}
+        >
+          <FontAwesome name="cog" size={20} color="black" />
+        </Pressable>
       </View>
       {locationCoords && <MusicPlayer coords={locationCoords} />}
     </View>

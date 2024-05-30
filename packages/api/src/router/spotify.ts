@@ -91,6 +91,62 @@ export async function getUserProfile({ accessToken }: { accessToken: string }) {
   return profileSchema.parse(await res.json());
 }
 
+// TODO: Maybe wrap this function with some sort of caching mechanism
+export async function getUsersQueue({ accessToken }: { accessToken: string }) {
+  const res = await fetch("https://api.spotify.com/v1/me/player/queue", {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+
+  if (!res.ok) {
+    throw new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Could not recieve data from Spotify API.",
+    });
+  }
+
+  const queueSchema = z.object({
+    queue: z.array(
+      z.object({
+        uri: z.string(),
+      }),
+    ),
+  });
+
+  return queueSchema.parse(await res.json());
+}
+
+export async function getPlayback({ accessToken }: { accessToken: string }) {
+  const res = await fetch(
+    "https://api.spotify.com/v1/me/player/currently-playing?market=US",
+    {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    },
+  );
+
+  if (!res.ok) {
+    throw new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Could not recieve data from Spotify API.",
+    });
+  }
+
+  if (res.headers.get("content-type") === null) {
+    return { isPlaying: false as const };
+  }
+
+  const { item } = playbackSchema.parse(await res.json());
+
+  if (!item) {
+    return { isPlaying: false as const };
+  }
+
+  return { item, isPlaying: true as const };
+}
+
 export const spotifyRouter = createTRPCRouter({
   getAccessToken: publicProcedure
     .input(z.object({ code: z.string() }))
@@ -129,33 +185,7 @@ export const spotifyRouter = createTRPCRouter({
         });
       }
 
-      const res = await fetch(
-        "https://api.spotify.com/v1/me/player/currently-playing?market=US",
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        },
-      );
-
-      if (!res.ok) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Could not recieve data from Spotify API.",
-        });
-      }
-
-      if (res.headers.get("content-type") === null) {
-        return { isPlaying: false as const };
-      }
-
-      const { item } = playbackSchema.parse(await res.json());
-
-      if (!item) {
-        return { isPlaying: false as const };
-      }
-
-      return { item, isPlaying: true as const };
+      return getPlayback({ accessToken });
     }),
   play: publicProcedure
     .input(
@@ -225,5 +255,47 @@ export const spotifyRouter = createTRPCRouter({
       }
 
       return getUserProfile({ accessToken });
+    }),
+  requestAutoplay: publicProcedure
+    .input(
+      z.object({
+        accessToken: z.string(),
+        longitude: z.number(),
+        latitude: z.number(),
+      }),
+    )
+    .mutation(async ({ input: { accessToken, latitude, longitude }, ctx }) => {
+      const [{ queue }, { item }] = await Promise.all([
+        getUsersQueue({ accessToken }),
+        getPlayback({ accessToken }),
+      ]);
+      const queueUris = queue.map((item) => item.uri);
+      const queueAndPlaybackUris = item ? [...queueUris, item.uri] : queueUris;
+
+      const nearbyListens = await ctx.db
+        .select()
+        .from(schema.listen)
+        .orderBy(
+          sql`location <-> ST_SetSRID(ST_Point(${longitude}, ${latitude}), 4326)`,
+        )
+        .limit(30);
+
+      const nearbyUris = nearbyListens.map((listen) => listen.itemUri);
+      const intersectionUris = queueAndPlaybackUris.filter((value) =>
+        nearbyUris.includes(value),
+      );
+
+      const isAddingToQueueRequired = intersectionUris.length < 5;
+
+      if (isAddingToQueueRequired) {
+        const suggestedListens = nearbyListens.filter(
+          ({ itemUri }) => !queueAndPlaybackUris.includes(itemUri),
+        );
+        const suggestedListen = suggestedListens.at(0);
+        if (suggestedListen) {
+          await addToQueue({ uri: suggestedListen.itemUri, accessToken });
+          return { suggestedListen };
+        }
+      }
     }),
 });
